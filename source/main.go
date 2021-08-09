@@ -18,13 +18,17 @@ import (
 )
 
 const (
-	PrometheusScrapePort       = "PROMETHEUS_SCRAPE_PORT"
-	PrometheusMetricsPath      = "PROMETHEUS_METRICS_PATH"
-	PrometheusMetricsScheme    = "PROMETHEUS_METRICS_SCHEME"
-	PrometheusStaticConfigPath = "ecs_file_sd.yml"
-	ECSCluster                 = "ECS_CLUSTER"
-	ScrapeInterval             = "SCRAPE_INTERVAL"
-	DefaultScrapeInterval      = 120
+	PrometheusScrapePort    = "PROMETHEUS_SCRAPE_PORT"
+	PrometheusMetricsPath   = "PROMETHEUS_METRICS_PATH"
+	PrometheusMetricsScheme = "PROMETHEUS_METRICS_SCHEME"
+
+	EnvECSCluster = "ECS_CLUSTER"
+
+	EnvScrapeInterval     = "SCRAPE_INTERVAL"
+	DefaultScrapeInterval = 120
+
+	EnvStaticTargetsPath     = "STATIC_TARGETS_PATH"
+	DefaultStaticTargetsPath = "/etc/prometheus/ecs_file_sd.yml"
 )
 
 var ctx = context.TODO()
@@ -213,7 +217,13 @@ func writeConfig(staticConfigs []*types.StaticConfig) {
 		logger.Log.Fatal().Err(err).Msg("Unable to marshal StaticConfig to yaml")
 	}
 
-	err = ioutil.WriteFile(PrometheusStaticConfigPath, marshalled, 0644)
+	// get path from env if it's set
+	var path = DefaultStaticTargetsPath
+	if v, ok := os.LookupEnv(EnvStaticTargetsPath); ok {
+		path = v
+	}
+
+	err = ioutil.WriteFile(path, marshalled, 0644)
 	if err != nil {
 		logger.Log.Fatal().Err(err).Msg("Unable to write StaticConfig out to file")
 	}
@@ -263,19 +273,19 @@ func parseTargets(cluster *string) {
 func main() {
 	// get the cluster from the environment
 	var cluster string
-	if v, ok := os.LookupEnv(ECSCluster); ok {
+	if v, ok := os.LookupEnv(EnvECSCluster); ok {
 		cluster = v
 	} else {
-		logger.Log.Fatal().Msg(fmt.Sprintf("Required enviroment variable %s is missing", ECSCluster))
+		logger.Log.Fatal().Msg(fmt.Sprintf("Required enviroment variable %s is missing", EnvECSCluster))
 	}
 
 	// get the interval from the environment
 	var interval = DefaultScrapeInterval
 	var err error
-	if v, ok := os.LookupEnv(ScrapeInterval); ok {
+	if v, ok := os.LookupEnv(EnvScrapeInterval); ok {
 		interval, err = strconv.Atoi(v)
 		if err != nil {
-			logger.Log.Fatal().Err(err).Str(ScrapeInterval, v).Msg(fmt.Sprintf("Unable to convert %s to int32", ScrapeInterval))
+			logger.Log.Fatal().Err(err).Str(EnvScrapeInterval, v).Msg(fmt.Sprintf("Unable to convert %s to int32", EnvScrapeInterval))
 		}
 	}
 
