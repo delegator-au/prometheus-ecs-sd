@@ -20,4 +20,4 @@ jobs:
         uses: docker/build-push-action@v2.6.1
         with:
           push: true
-          tags: delegatorau/prometheus-ecs-sd:$GITHUB_REF
+          tags: delegatorau/prometheus-ecs-sd:${{ env.GITHUB_REF }}
